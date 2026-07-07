@@ -504,13 +504,18 @@
     // ===== FUNCIONES PRINCIPALES =====
 
     // Consultar tarjeta por ID
-    async function consultar() {
+    async function consultar(silent = false) {
       const id = document.getElementById('input-id').value.trim();
-      if (!id) return showToast('Ingresa un ID de tarjeta', 'error');
+      if (!id) {
+        if (!silent) showToast('Ingresa un ID de tarjeta', 'error');
+        return;
+      }
 
       const btn = document.getElementById('btn-consultar');
-      btn.innerHTML = '<span class="spinner"></span>Buscando…';
-      btn.disabled = true;
+      if (!silent) {
+        btn.innerHTML = '<span class="spinner"></span>Buscando…';
+        btn.disabled = true;
+      }
 
       try {
         const res = await fetch(`/tarjeta/${encodeURIComponent(id)}`);
@@ -518,15 +523,17 @@
 
         if (res.ok) {
           mostrarInfo(data);
-          showToast('Tarjeta encontrada', 'success');
+          if (!silent) showToast('Tarjeta encontrada', 'success');
         } else {
-          showToast(data.error || 'Error al consultar', 'error');
+          if (!silent) showToast(data.error || 'Error al consultar', 'error');
         }
       } catch (err) {
-        showToast('Error de conexión', 'error');
+        if (!silent) showToast('Error de conexión', 'error');
       } finally {
-        btn.innerHTML = 'Consultar';
-        btn.disabled = false;
+        if (!silent) {
+          btn.innerHTML = 'Consultar';
+          btn.disabled = false;
+        }
       }
     }
 
@@ -712,11 +719,21 @@
 
     // Enter key en el campo de monto
     document.getElementById('input-monto').addEventListener('keydown', e => {
-      if (e.key === 'Enter') agregarSaldo();
+      if (e.key === 'Enter') modificarSaldo(1);
     });
 
     // Cargar lista al inicio
     listarTarjetas();
+
+    // Auto-actualizar cada 2 segundos (Polling) para ver cambios en tiempo real
+    setInterval(() => {
+      listarTarjetas();
+      // Si el panel de información está abierto, actualizar sus datos en silencio
+      const panel = document.getElementById('info-panel');
+      if (panel && panel.classList.contains('visible')) {
+        consultar(true);
+      }
+    }, 2000);
   </script>
 </body>
 </html>
