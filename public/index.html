@@ -414,8 +414,8 @@
     <!-- Header -->
     <div class="header">
       <div class="header-icon">🅿️</div>
-      <h1>Estacionamiento RFID</h1>
-      <p>Panel de control — Sistema con ESP32</p>
+      <h1>Estacionamiento</h1>
+      <p>Panel de control</p>
     </div>
 
     <!-- Consultar tarjeta -->
@@ -443,14 +443,11 @@
           </div>
         </div>
 
-        <!-- Simular Lector RFID (ESP32) -->
-        <div class="saldo-section visible" style="border-top: none; padding-top: 0;">
-          <div class="card-title">Simular Lector RFID (ESP32)</div>
-          <div class="input-group">
-            <button class="btn-primary" onclick="simularPase()" style="width: 100%; background: linear-gradient(135deg, #7c5bf5, var(--accent));">
-              Simular Pase de Tarjeta (Validar)
-            </button>
-          </div>
+        <!-- Simular Lector RFID (Sin cabecera extra) -->
+        <div class="saldo-section visible" style="border-top: none; padding-top: 0; margin-bottom: 12px;">
+          <button class="btn-primary" onclick="simularPase()" style="width: 100%; background: linear-gradient(135deg, #7c5bf5, var(--accent));">
+            Simular Pase de Tarjeta
+          </button>
         </div>
 
         <!-- Modificar saldo -->
@@ -460,15 +457,6 @@
             <input type="number" id="input-monto" placeholder="Monto (ej: 5000)" min="0">
             <button class="btn-success" onclick="modificarSaldo(1)">Agregar</button>
             <button class="btn-danger" onclick="modificarSaldo(-1)">Quitar</button>
-          </div>
-        </div>
-
-        <!-- Debug: cambiar estado -->
-        <div class="saldo-section visible" style="margin-top:0;">
-          <div class="card-title">🛠 Debug — Cambiar Estado</div>
-          <div class="input-group">
-            <button class="btn-warning btn-sm" onclick="cambiarEstado('adentro')">Forzar ADENTRO</button>
-            <button class="btn-primary btn-sm" onclick="cambiarEstado('afuera')">Forzar AFUERA</button>
           </div>
         </div>
       </div>
@@ -487,10 +475,11 @@
               <th>ID</th>
               <th>Saldo</th>
               <th>Estado</th>
+              <th style="width: 80px; text-align: center;">Acción</th>
             </tr>
           </thead>
           <tbody id="tabla-body">
-            <tr><td colspan="3" class="empty-state">Presiona "Actualizar lista"</td></tr>
+            <tr><td colspan="4" class="empty-state">Presiona "Actualizar lista"</td></tr>
           </tbody>
         </table>
       </div>
@@ -642,25 +631,32 @@
       }
     }
 
-    // Cambiar estado manualmente (debug)
-    async function cambiarEstado(nuevoEstado) {
-      const id = document.getElementById('input-id').value.trim();
-      if (!id) return showToast('Primero consulta una tarjeta', 'error');
+    // Eliminar tarjeta del sistema
+    async function eliminarTarjeta(id, event) {
+      if (event) event.stopPropagation(); // Evitar que al hacer clic se consulte la tarjeta
+      
+      if (!confirm(`¿Estás seguro de que deseas eliminar la tarjeta ${id}?`)) {
+        return;
+      }
 
       try {
-        const res = await fetch(`/tarjeta/${encodeURIComponent(id)}/estado`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: nuevoEstado }),
+        const res = await fetch(`/tarjeta/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
         });
 
-        const data = await res.json();
-
         if (res.ok) {
-          showToast(`Estado cambiado a "${nuevoEstado}"`, 'success');
-          consultar();
+          showToast('Tarjeta eliminada con éxito', 'success');
+          
+          // Si la tarjeta que borramos estaba seleccionada, ocultar panel
+          const currentId = document.getElementById('input-id').value.trim();
+          if (currentId === id) {
+            document.getElementById('info-panel').classList.remove('visible');
+            document.getElementById('input-id').value = '';
+          }
+          
+          listarTarjetas();
         } else {
-          showToast(data.error || 'Error al cambiar estado', 'error');
+          showToast('Error al eliminar la tarjeta', 'error');
         }
       } catch (err) {
         showToast('Error de conexión', 'error');
@@ -675,7 +671,7 @@
         const tbody = document.getElementById('tabla-body');
 
         if (data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No hay tarjetas registradas</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No hay tarjetas registradas</td></tr>';
           return;
         }
 
@@ -690,6 +686,11 @@
                 <span class="badge-dot"></span>
                 ${t.estado === 'adentro' ? 'Adentro' : 'Afuera'}
               </span>
+            </td>
+            <td style="text-align: center;">
+              <button class="btn-danger btn-sm" onclick="eliminarTarjeta('${t.id_tarjeta}', event)" style="padding: 4px 10px; font-size: 11px;">
+                Eliminar
+              </button>
             </td>
           </tr>
         `).join('');

@@ -193,37 +193,15 @@ app.post('/tarjeta/:id/validar', async (req, res) => {
 });
 
 // ============================================================
-// ENDPOINT 4: POST /tarjeta/:id/estado (DEBUG)
-// Cambia el estado manualmente. Body: { "estado": "afuera" }
+// ENDPOINT 4: DELETE /tarjeta/:id
+// Elimina una tarjeta registrada del sistema
 // ============================================================
-app.post('/tarjeta/:id/estado', async (req, res) => {
+app.delete('/tarjeta/:id', async (req, res) => {
   try {
-    const { estado } = req.body;
-
-    if (estado !== 'adentro' && estado !== 'afuera') {
-      return res.status(400).json({
-        error: 'El campo "estado" debe ser "adentro" o "afuera"',
-      });
-    }
-
-    await obtenerOCrearTarjeta(req.params.id);
-
-    const horaEntrada = estado === 'adentro' ? new Date().toISOString() : null;
-
-    await pool.query(
-      `UPDATE tarjetas
-       SET estado = $1, hora_entrada = $2
-       WHERE id_tarjeta = $3`,
-      [estado, horaEntrada, req.params.id]
-    );
-
-    res.json({
-      id_tarjeta: req.params.id,
-      estado: estado,
-      hora_entrada: horaEntrada,
-    });
+    await pool.query('DELETE FROM tarjetas WHERE id_tarjeta = $1', [req.params.id]);
+    res.json({ success: true, id_tarjeta: req.params.id });
   } catch (err) {
-    console.error('Error en POST /tarjeta/:id/estado:', err.message);
+    console.error('Error en DELETE /tarjeta/:id:', err.message);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
