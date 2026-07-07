@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estacionamiento RFID - Panel de Control</title>
+  <meta name="description" content="Sistema de gestión de estacionamiento con tarjetas RFID">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ===== DESIGN TOKENS ===== */
+    :root {
+      --bg-primary: #0c0e14;
+      --bg-card: #13161f;
+      --bg-card-hover: #181c27;
+      --bg-input: #1a1e2a;
+      --border: #242938;
+      --border-focus: #4f6ef7;
+      --text-primary: #eaedf6;
+      --text-secondary: #8b92a8;
+      --text-muted: #5a6178;
+      --accent: #4f6ef7;
+      --accent-hover: #6b85ff;
+      --accent-glow: rgba(79, 110, 247, 0.25);
+      --success: #34d399;
+      --success-bg: rgba(52, 211, 153, 0.1);
+      --warning: #fbbf24;
+      --warning-bg: rgba(251, 191, 36, 0.1);
+      --danger: #f87171;
+      --danger-bg: rgba(248, 113, 113, 0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --transition: 200ms ease;
+      --font: 'Inter', -apple-system, sans-serif;
+    }
+
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== LAYOUT ===== */
+    .app {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .header-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--accent), #7c5bf5);
+      border-radius: 16px;
+      font-size: 26px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 32px var(--accent-glow);
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 16px;
+      transition: border-color var(--transition);
+    }
+
+    .card:hover {
+      border-color: #2e3448;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    /* ===== FORM ELEMENTS ===== */
+    .input-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: var(--font);
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    input::placeholder {
+      color: var(--text-muted);
+    }
+
+    button {
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #0c0e14;
+    }
+
+    .btn-success:hover {
+      background: #4ade80;
+      box-shadow: 0 4px 16px rgba(52, 211, 153, 0.25);
+    }
+
+    .btn-success:active {
+      transform: scale(0.97);
+    }
+
+    /* ===== INFO PANEL ===== */
+    .info-panel {
+      display: none;
+      margin-top: 16px;
+      animation: fadeSlideIn 300ms ease;
+    }
+
+    .info-panel.visible {
+      display: block;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .info-item {
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+    }
+
+    .info-item.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .info-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .info-value {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .info-value.positive { color: var(--success); }
+    .info-value.negative { color: var(--danger); }
+
+    /* ===== STATUS BADGE ===== */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 99px;
+    }
+
+    .badge-adentro {
+      background: var(--warning-bg);
+      color: var(--warning);
+    }
+
+    .badge-afuera {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ===== SALDO SECTION ===== */
+    .saldo-section {
+      display: none;
+      margin-top: 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .saldo-section.visible {
+      display: block;
+      animation: fadeSlideIn 300ms ease;
+    }
+
+    .saldo-section .card-title {
+      margin-bottom: 12px;
+    }
+
+    /* ===== TOAST NOTIFICATION ===== */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      transition: all 400ms cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.success { border-color: var(--success); }
+    .toast.error { border-color: var(--danger); }
+
+    /* ===== TABLE (tarjetas list) ===== */
+    .table-wrapper {
+      overflow-x: auto;
+      margin-top: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: var(--bg-card-hover);
+    }
+
+    td.mono {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: var(--text-primary);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* ===== SPINNER ===== */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--text-muted);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 600ms linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 480px) {
+      .app { padding: 20px 16px 40px; }
+      .info-grid { grid-template-columns: 1fr; }
+      .input-group { flex-direction: column; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-icon">🅿️</div>
+      <h1>Estacionamiento RFID</h1>
+      <p>Panel de control — Sistema con ESP32</p>
+    </div>
+
+    <!-- Consultar tarjeta -->
+    <div class="card">
+      <div class="card-title">Consultar Tarjeta</div>
+      <div class="input-group">
+        <input type="text" id="input-id" placeholder="ID de tarjeta RFID (ej: A1B2C3D4)">
+        <button class="btn-primary" id="btn-consultar" onclick="consultar()">Consultar</button>
+      </div>
+
+      <!-- Info panel (hidden by default) -->
+      <div class="info-panel" id="info-panel">
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Saldo</div>
+            <div class="info-value" id="info-saldo">$0</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Estado</div>
+            <div id="info-estado"></div>
+          </div>
+          <div class="info-item full-width" id="info-hora-row" style="display:none;">
+            <div class="info-label">Hora de entrada</div>
+            <div class="info-value" id="info-hora" style="font-size:14px;">—</div>
+          </div>
+        </div>
+
+        <!-- Agregar saldo -->
+        <div class="saldo-section visible">
+          <div class="card-title">Modificar Saldo</div>
+          <div class="input-group">
+            <input type="number" id="input-monto" placeholder="Monto (ej: 5000 o -1000)">
+            <button class="btn-success" id="btn-saldo" onclick="agregarSaldo()">Agregar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista de tarjetas -->
+    <div class="card">
+      <div class="card-title">Tarjetas Registradas</div>
+      <button class="btn-primary" onclick="listarTarjetas()" style="margin-bottom:12px; font-size:12px; padding:8px 16px;">
+        Actualizar lista
+      </button>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Saldo</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-body">
+            <tr><td colspan="3" class="empty-state">Presiona "Actualizar lista"</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ===== FUNCIONES PRINCIPALES =====
+
+    // Consultar tarjeta por ID
+    async function consultar() {
+      const id = document.getElementById('input-id').value.trim();
+      if (!id) return showToast('Ingresa un ID de tarjeta', 'error');
+
+      const btn = document.getElementById('btn-consultar');
+      btn.innerHTML = '<span class="spinner"></span>Buscando…';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`/tarjeta/${encodeURIComponent(id)}`);
+        const data = await res.json();
+
+        if (res.ok) {
+          mostrarInfo(data);
+          showToast('Tarjeta encontrada', 'success');
+        } else {
+          showToast(data.error || 'Error al consultar', 'error');
+        }
+      } catch (err) {
+        showToast('Error de conexión', 'error');
+      } finally {
+        btn.innerHTML = 'Consultar';
+        btn.disabled = false;
+      }
+    }
+
+    // Mostrar la info en el panel
+    function mostrarInfo(data) {
+      const panel = document.getElementById('info-panel');
+      panel.classList.add('visible');
+
+      // Saldo
+      const saldoEl = document.getElementById('info-saldo');
+      saldoEl.textContent = `$${data.saldo.toLocaleString('es-CL')}`;
+      saldoEl.className = 'info-value ' + (data.saldo >= 0 ? 'positive' : 'negative');
+
+      // Estado badge
+      const estadoEl = document.getElementById('info-estado');
+      const isInside = data.estado === 'adentro';
+      estadoEl.innerHTML = `
+        <span class="badge badge-${data.estado}">
+          <span class="badge-dot"></span>
+          ${isInside ? 'Adentro' : 'Afuera'}
+        </span>
+      `;
+
+      // Hora de entrada
+      const horaRow = document.getElementById('info-hora-row');
+      const horaEl = document.getElementById('info-hora');
+      if (data.hora_entrada) {
+        horaRow.style.display = '';
+        const fecha = new Date(data.hora_entrada);
+        horaEl.textContent = fecha.toLocaleString('es-CL');
+      } else {
+        horaRow.style.display = 'none';
+      }
+    }
+
+    // Agregar o quitar saldo
+    async function agregarSaldo() {
+      const id = document.getElementById('input-id').value.trim();
+      const montoStr = document.getElementById('input-monto').value.trim();
+
+      if (!id) return showToast('Primero consulta una tarjeta', 'error');
+      if (!montoStr) return showToast('Ingresa un monto', 'error');
+
+      const monto = parseInt(montoStr, 10);
+      if (isNaN(monto)) return showToast('El monto debe ser un número', 'error');
+
+      const btn = document.getElementById('btn-saldo');
+      btn.innerHTML = '<span class="spinner"></span>';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`/tarjeta/${encodeURIComponent(id)}/saldo`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ monto }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast(
+            monto >= 0
+              ? `+$${monto.toLocaleString('es-CL')} agregados`
+              : `$${monto.toLocaleString('es-CL')} descontados`,
+            'success'
+          );
+          // Refrescar la info
+          consultar();
+          document.getElementById('input-monto').value = '';
+        } else {
+          showToast(data.error || 'Error al modificar saldo', 'error');
+        }
+      } catch (err) {
+        showToast('Error de conexión', 'error');
+      } finally {
+        btn.innerHTML = 'Agregar';
+        btn.disabled = false;
+      }
+    }
+
+    // Listar todas las tarjetas
+    async function listarTarjetas() {
+      try {
+        const res = await fetch('/tarjetas');
+        const data = await res.json();
+        const tbody = document.getElementById('tabla-body');
+
+        if (data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No hay tarjetas registradas</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = data.map(t => `
+          <tr onclick="document.getElementById('input-id').value='${t.id_tarjeta}'; consultar();" style="cursor:pointer;">
+            <td class="mono">${t.id_tarjeta}</td>
+            <td style="color: ${t.saldo >= 0 ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">
+              $${t.saldo.toLocaleString('es-CL')}
+            </td>
+            <td>
+              <span class="badge badge-${t.estado}">
+                <span class="badge-dot"></span>
+                ${t.estado === 'adentro' ? 'Adentro' : 'Afuera'}
+              </span>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        showToast('Error al listar tarjetas', 'error');
+      }
+    }
+
+    // Toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast ' + type;
+
+      // Trigger show
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+      });
+
+      // Auto-hide
+      clearTimeout(toast._timeout);
+      toast._timeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    // Enter key en el campo de ID
+    document.getElementById('input-id').addEventListener('keydown', e => {
+      if (e.key === 'Enter') consultar();
+    });
+
+    // Enter key en el campo de monto
+    document.getElementById('input-monto').addEventListener('keydown', e => {
+      if (e.key === 'Enter') agregarSaldo();
+    });
+
+    // Cargar lista al inicio
+    listarTarjetas();
+  </script>
+</body>
+</html>
