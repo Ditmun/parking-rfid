@@ -176,6 +176,39 @@
       transform: scale(0.97);
     }
 
+    .btn-danger {
+      background: var(--danger);
+      color: #0c0e14;
+    }
+
+    .btn-danger:hover {
+      background: #fca5a5;
+      box-shadow: 0 4px 16px var(--danger-bg);
+    }
+
+    .btn-danger:active {
+      transform: scale(0.97);
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: #0c0e14;
+    }
+
+    .btn-warning:hover {
+      background: #fcd34d;
+      box-shadow: 0 4px 16px var(--warning-bg);
+    }
+
+    .btn-warning:active {
+      transform: scale(0.97);
+    }
+
+    .btn-sm {
+      font-size: 12px;
+      padding: 8px 14px;
+    }
+
     /* ===== INFO PANEL ===== */
     .info-panel {
       display: none;
@@ -410,12 +443,22 @@
           </div>
         </div>
 
-        <!-- Agregar saldo -->
+        <!-- Modificar saldo -->
         <div class="saldo-section visible">
           <div class="card-title">Modificar Saldo</div>
           <div class="input-group">
-            <input type="number" id="input-monto" placeholder="Monto (ej: 5000 o -1000)">
-            <button class="btn-success" id="btn-saldo" onclick="agregarSaldo()">Agregar</button>
+            <input type="number" id="input-monto" placeholder="Monto (ej: 5000)" min="0">
+            <button class="btn-success" onclick="modificarSaldo(1)">Agregar</button>
+            <button class="btn-danger" onclick="modificarSaldo(-1)">Quitar</button>
+          </div>
+        </div>
+
+        <!-- Debug: cambiar estado -->
+        <div class="saldo-section visible" style="margin-top:0;">
+          <div class="card-title">🛠 Debug — Cambiar Estado</div>
+          <div class="input-group">
+            <button class="btn-warning btn-sm" onclick="cambiarEstado('adentro')">Forzar ADENTRO</button>
+            <button class="btn-primary btn-sm" onclick="cambiarEstado('afuera')">Forzar AFUERA</button>
           </div>
         </div>
       </div>
@@ -509,20 +552,18 @@
       }
     }
 
-    // Agregar o quitar saldo
-    async function agregarSaldo() {
+    // Agregar o quitar saldo (signo: 1 = agregar, -1 = quitar)
+    async function modificarSaldo(signo) {
       const id = document.getElementById('input-id').value.trim();
       const montoStr = document.getElementById('input-monto').value.trim();
 
       if (!id) return showToast('Primero consulta una tarjeta', 'error');
       if (!montoStr) return showToast('Ingresa un monto', 'error');
 
-      const monto = parseInt(montoStr, 10);
-      if (isNaN(monto)) return showToast('El monto debe ser un número', 'error');
+      const montoAbs = parseInt(montoStr, 10);
+      if (isNaN(montoAbs) || montoAbs < 0) return showToast('Ingresa un monto positivo', 'error');
 
-      const btn = document.getElementById('btn-saldo');
-      btn.innerHTML = '<span class="spinner"></span>';
-      btn.disabled = true;
+      const monto = montoAbs * signo;
 
       try {
         const res = await fetch(`/tarjeta/${encodeURIComponent(id)}/saldo`, {
@@ -535,12 +576,11 @@
 
         if (res.ok) {
           showToast(
-            monto >= 0
-              ? `+$${monto.toLocaleString('es-CL')} agregados`
-              : `$${monto.toLocaleString('es-CL')} descontados`,
+            signo > 0
+              ? `+$${montoAbs.toLocaleString('es-CL')} agregados`
+              : `-$${montoAbs.toLocaleString('es-CL')} descontados`,
             'success'
           );
-          // Refrescar la info
           consultar();
           document.getElementById('input-monto').value = '';
         } else {
@@ -548,9 +588,31 @@
         }
       } catch (err) {
         showToast('Error de conexión', 'error');
-      } finally {
-        btn.innerHTML = 'Agregar';
-        btn.disabled = false;
+      }
+    }
+
+    // Cambiar estado manualmente (debug)
+    async function cambiarEstado(nuevoEstado) {
+      const id = document.getElementById('input-id').value.trim();
+      if (!id) return showToast('Primero consulta una tarjeta', 'error');
+
+      try {
+        const res = await fetch(`/tarjeta/${encodeURIComponent(id)}/estado`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: nuevoEstado }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast(`Estado cambiado a "${nuevoEstado}"`, 'success');
+          consultar();
+        } else {
+          showToast(data.error || 'Error al cambiar estado', 'error');
+        }
+      } catch (err) {
+        showToast('Error de conexión', 'error');
       }
     }
 

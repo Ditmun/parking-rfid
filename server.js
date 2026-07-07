@@ -183,7 +183,43 @@ app.post('/tarjeta/:id/validar', async (req, res) => {
 });
 
 // ============================================================
-// ENDPOINT 4: GET /tarjetas (extra, útil para la demo)
+// ENDPOINT 4: POST /tarjeta/:id/estado (DEBUG)
+// Cambia el estado manualmente. Body: { "estado": "afuera" }
+// ============================================================
+app.post('/tarjeta/:id/estado', async (req, res) => {
+  try {
+    const { estado } = req.body;
+
+    if (estado !== 'adentro' && estado !== 'afuera') {
+      return res.status(400).json({
+        error: 'El campo "estado" debe ser "adentro" o "afuera"',
+      });
+    }
+
+    await obtenerOCrearTarjeta(req.params.id);
+
+    const horaEntrada = estado === 'adentro' ? new Date().toISOString() : null;
+
+    await pool.query(
+      `UPDATE tarjetas
+       SET estado = $1, hora_entrada = $2
+       WHERE id_tarjeta = $3`,
+      [estado, horaEntrada, req.params.id]
+    );
+
+    res.json({
+      id_tarjeta: req.params.id,
+      estado: estado,
+      hora_entrada: horaEntrada,
+    });
+  } catch (err) {
+    console.error('Error en POST /tarjeta/:id/estado:', err.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ============================================================
+// ENDPOINT 5: GET /tarjetas (extra, útil para la demo)
 // Lista todas las tarjetas registradas
 // ============================================================
 app.get('/tarjetas', async (req, res) => {
