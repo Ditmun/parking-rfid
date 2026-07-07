@@ -585,7 +585,11 @@
 
         if (res.ok) {
           if (data.accion === 'entrada') {
-            showToast(`📥 Entrada Aprobada. Saldo: $${data.saldo.toLocaleString('es-CL')}`, 'success');
+            if (data.resultado === 'aprobado') {
+              showToast(`📥 Entrada Aprobada. Saldo: $${data.saldo.toLocaleString('es-CL')}`, 'success');
+            } else {
+              showToast(`❌ Entrada Denegada: ${data.error} ($${data.saldo.toLocaleString('es-CL')})`, 'error');
+            }
           } else if (data.accion === 'salida') {
             showToast(`📤 Salida Aprobada. Tiempo: ${data.segundos_estacionado}s | Costo: $${data.costo.toLocaleString('es-CL')} | Nuevo Saldo: $${data.saldo_nuevo.toLocaleString('es-CL')}`, 'success');
           }

@@ -132,6 +132,16 @@ app.post('/tarjeta/:id/validar', async (req, res) => {
 
     if (tarjeta.estado === 'afuera') {
       // ---- ENTRADA ----
+      // Si no tiene saldo (0 o negativo), no puede entrar
+      if (tarjeta.saldo <= 0) {
+        return res.json({
+          accion: 'entrada',
+          resultado: 'denegado',
+          error: 'Saldo insuficiente',
+          saldo: tarjeta.saldo,
+        });
+      }
+
       const ahora = new Date();
 
       await pool.query(
@@ -224,8 +234,9 @@ app.post('/tarjeta/:id/estado', async (req, res) => {
 // ============================================================
 app.get('/tarjetas', async (req, res) => {
   try {
+    // Ordenar por hora de entrada reciente (los de adentro primero), y luego por ID
     const result = await pool.query(
-      'SELECT * FROM tarjetas ORDER BY id_tarjeta'
+      'SELECT * FROM tarjetas ORDER BY hora_entrada DESC NULLS LAST, id_tarjeta ASC'
     );
     res.json(result.rows);
   } catch (err) {

@@ -119,10 +119,20 @@ void validarTarjeta(String uid) {
 
     if (strcmp(accion, "entrada") == 0) {
       // --- ENTRADA ---
+      const char* resultado = doc["resultado"];
       int saldo = doc["saldo"];
-      Serial.println("✅ ENTRADA APROBADA");
-      Serial.println("   Saldo: $" + String(saldo));
-      // TODO: Activar LED verde, buzzer, servo de barrera, etc.
+      
+      if (strcmp(resultado, "aprobado") == 0) {
+        Serial.println("✅ ENTRADA APROBADA");
+        Serial.println("   Saldo: $" + String(saldo));
+        // TODO: Activar LED verde, abrir barrera, etc.
+      } else {
+        const char* err = doc["error"];
+        Serial.println("❌ ENTRADA DENEGADA");
+        Serial.println("   Motivo: " + String(err));
+        Serial.println("   Saldo actual: $" + String(saldo));
+        // TODO: Activar LED rojo, buzzer de error, etc.
+      }
 
     } else {
       // --- SALIDA ---
