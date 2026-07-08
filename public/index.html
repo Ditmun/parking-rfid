@@ -84,6 +84,58 @@
       color: var(--text-secondary);
     }
 
+    /* ===== STATS BAR ===== */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: border-color var(--transition);
+    }
+
+    .stat-card:hover { border-color: #2e3448; }
+
+    .stat-icon {
+      font-size: 22px;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon.occupied  { background: var(--danger-bg); }
+    .stat-icon.free      { background: var(--success-bg); }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-value.occupied { color: var(--danger); }
+    .stat-value.free     { color: var(--success); }
+
     /* ===== CARDS ===== */
     .card {
       background: var(--bg-card);
@@ -418,6 +470,24 @@
       <p>Panel de control</p>
     </div>
 
+    <!-- Stats bar: puestos ocupados / libres -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-icon occupied">🔴</div>
+        <div>
+          <div class="stat-label">Ocupados</div>
+          <div class="stat-value occupied" id="stat-ocupados">—</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon free">🟢</div>
+        <div>
+          <div class="stat-label">Disponibles</div>
+          <div class="stat-value free" id="stat-libres">—</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Consultar tarjeta -->
     <div class="card">
       <div class="card-title">Consultar Tarjeta</div>
@@ -663,12 +733,22 @@
       }
     }
 
+    // Actualizar barra de estadísticas
+    function updateStats(tarjetas) {
+      const ocupados = tarjetas.filter(t => t.estado === 'adentro').length;
+      const libres   = tarjetas.filter(t => t.estado === 'afuera').length;
+      document.getElementById('stat-ocupados').textContent = ocupados;
+      document.getElementById('stat-libres').textContent   = libres;
+    }
+
     // Listar todas las tarjetas
     async function listarTarjetas() {
       try {
         const res = await fetch('/tarjetas');
         const data = await res.json();
         const tbody = document.getElementById('tabla-body');
+
+        updateStats(data);
 
         if (data.length === 0) {
           tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No hay tarjetas registradas</td></tr>';
