@@ -223,6 +223,42 @@ app.get('/tarjetas', async (req, res) => {
   }
 });
 
+// ============================================================
+// ENDPOINT 6: POST /ocupacion
+// El Nodo Entrada llama este endpoint cuando recibe el estado
+// del sensor ultrasónico via ESP-NOW desde el Nodo Plaza.
+// Body: { "ocupada": true | false }
+// ============================================================
+// Estado en memoria (se resetea si el servidor se reinicia)
+let estadoSensor = { ocupada: false };
+
+app.post('/ocupacion', (req, res) => {
+  const { ocupada } = req.body;
+  if (typeof ocupada !== 'boolean') {
+    return res.status(400).json({ error: 'El campo "ocupada" debe ser true o false' });
+  }
+  estadoSensor.ocupada = ocupada;
+  console.log(`📡 Sensor ultrasónico: plaza ${ocupada ? 'OCUPADA' : 'LIBRE'}`);
+  res.json({ ocupada: estadoSensor.ocupada });
+});
+
+// ============================================================
+// ENDPOINT 7: GET /ocupacion
+// La página web lee este endpoint para mostrar el estado real
+// del sensor ultrasónico en tiempo real.
+// ============================================================
+const TOTAL_PLAZAS = 1; // Número total de plazas del estacionamiento
+
+app.get('/ocupacion', (req, res) => {
+  const ocupadas = estadoSensor.ocupada ? 1 : 0;
+  res.json({
+    ocupada:  estadoSensor.ocupada,
+    ocupadas: ocupadas,
+    libres:   TOTAL_PLAZAS - ocupadas,
+    total:    TOTAL_PLAZAS,
+  });
+});
+
 // --- Iniciar servidor ---
 inicializarDB().then(() => {
   app.listen(PORT, () => {

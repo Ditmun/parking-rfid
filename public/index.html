@@ -733,12 +733,16 @@
       }
     }
 
-    // Actualizar barra de estadísticas
-    function updateStats(tarjetas) {
-      const ocupados = tarjetas.filter(t => t.estado === 'adentro').length;
-      const libres   = tarjetas.filter(t => t.estado === 'afuera').length;
-      document.getElementById('stat-ocupados').textContent = ocupados;
-      document.getElementById('stat-libres').textContent   = libres;
+    // Actualizar barra de estadísticas desde el sensor ultrasónico real
+    async function updateStats() {
+      try {
+        const res  = await fetch('/ocupacion');
+        const data = await res.json();
+        document.getElementById('stat-ocupados').textContent = data.ocupadas;
+        document.getElementById('stat-libres').textContent   = data.libres;
+      } catch (err) {
+        // Silencioso si falla
+      }
     }
 
     // Listar todas las tarjetas
@@ -747,8 +751,6 @@
         const res = await fetch('/tarjetas');
         const data = await res.json();
         const tbody = document.getElementById('tabla-body');
-
-        updateStats(data);
 
         if (data.length === 0) {
           tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No hay tarjetas registradas</td></tr>';
@@ -813,12 +815,16 @@
     // Auto-actualizar cada 2 segundos (Polling) para ver cambios en tiempo real
     setInterval(() => {
       listarTarjetas();
+      updateStats(); // Actualiza contadores desde el sensor ultrasónico
       // Si el panel de información está abierto, actualizar sus datos en silencio
       const panel = document.getElementById('info-panel');
       if (panel && panel.classList.contains('visible')) {
         consultar(true);
       }
     }, 2000);
+
+    // Carga inicial de estadísticas del sensor
+    updateStats();
   </script>
 </body>
 </html>
